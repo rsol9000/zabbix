@@ -1,4 +1,4 @@
-version: "3.9"
+#version: "3.9"
 
 ############################
 # VOLUMENES
@@ -142,9 +142,9 @@ services:
     image: zabbix/zabbix-agent2:ubuntu-7.4.3
     container_name: zabbix-agent2
     restart: unless-stopped
-    networks:
-      net0:
-        ipv4_address: ${ZBX_AGENT2_IP}
+    #    networks:
+    #      net0:
+    #        ipv4_address: ${ZBX_AGENT2_IP}
     user: "1001:996"
     environment:
       - ZBX_SERVER_HOST=${ZBX_SERVER_IP}
