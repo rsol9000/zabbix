@@ -149,7 +149,7 @@ services:
     environment:
       - ZBX_SERVER_HOST=${ZBX_SERVER_IP}
       - ZBX_ACTIVE_ALLOW=${ZBX_ACTIVE_ALLOW}
-      - ZBX_HOSTNAME=${ZBX_HOSTNAME}
+      #  - ZBX_HOSTNAME=${ZBX_HOSTNAME}
       - ZBX_METADATA=${ZBX_METADATA}
     volumes:
       - /proc:/proc
