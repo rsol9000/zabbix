@@ -18,7 +18,7 @@ services:
       - ZBX_ACTIVE_ALLOW=true
       #- ZBX_HOSTNAME=${ZBX_HOSTNAME}
       - ZBX_METADATA=docker-autoreg
-      - ZBX_HOSTINTERFACE=1:databus.siua.ac.cr:10050
+      #- ZBX_HOSTINTERFACE=1:databus.siua.ac.cr:10050
     volumes:
       - /proc:/proc
       - /sys:/sys:ro
