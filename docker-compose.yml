@@ -98,7 +98,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/localhost/10051' || exit 1 && zabbix_server -R log_level_increase || exit 1",
+          "timeout 5 bash -c 'cat < /dev/null > /dev/tcp/localhost/10051' || exit 1",
         ]
       interval: 10s
       timeout: 10s
@@ -165,7 +165,7 @@ services:
       - ZBX_ACTIVE_ALLOW=${ZBX_ACTIVE_ALLOW}
       - ZBX_HOSTNAME=${ZBX_HOSTNAME}
       - ZBX_METADATA=${ZBX_METADATA}
-      - ZBX_HOSTINTERFACE=1:zabbix-agent2:10050
+      # - ZBX_HOSTINTERFACE=1:zabbix-agent2:10050
     volumes:
       - /proc:/proc
       - /sys:/sys:ro

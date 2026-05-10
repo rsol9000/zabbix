@@ -38,7 +38,6 @@ GROUP_ID=$(curl -s -X POST "$API" \
     "params": {"filter": {"name": ["$HOST_GROUP"]}},
     "id": 5
   }' | grep -o '"groupid":"[^"]*"' | head -1 | cut -d'"' -f4)
-
 if [ -z "$GROUP_ID" ]; then
   echo "📁 Creando grupo: $HOST_GROUP"
   GROUP_ID=$(curl -sf -X POST "$API" \
