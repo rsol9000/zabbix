@@ -8,17 +8,17 @@ services:
     restart: unless-stopped
     privileged: true
     group_add:
-      - "990"
+      - "${DOCKER_GID}"
     #    networks:
     #      net0:
     #        ipv4_address: ${ZBX_AGENT2_IP}
     #user: "1001:996"
     environment:
-      - ZBX_SERVER_HOST=${ZBX_SERVER_IP}
-      - ZBX_ACTIVE_ALLOW=${ZBX_ACTIVE_ALLOW}
-      - ZBX_HOSTNAME=${ZBX_HOSTNAME}
-      - ZBX_METADATA=${ZBX_METADATA}
-      - ZBX_HOSTINTERFACE=1:zabbix.databus.ucr.ac.cr:10050
+      - ZBX_SERVER_HOST=r4.siua.ac.cr
+      - ZBX_ACTIVE_ALLOW=true
+      #- ZBX_HOSTNAME=${ZBX_HOSTNAME}
+      - ZBX_METADATA=docker-autoreg
+      - ZBX_HOSTINTERFACE=1:databus.siua.ac.cr:10050
     volumes:
       - /proc:/proc
       - /sys:/sys:ro
