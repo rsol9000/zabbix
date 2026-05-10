@@ -1,19 +1,25 @@
-##########################
-# ZABBIX AGENT 2
-###########################
-zabbix-agent2:
-  image: zabbix/zabbix-agent2:ubuntu-7.4.3
-  container_name: databus-dev-zabbix-agent2-1
-  restart: unless-stopped
-  #  networks:
-  #    net0:
-  #      ipv4_address: ${ZBX_AGENT2_IP}
-  #  user: "1001:996"
-  environment:
-    - ZBX_SERVER_HOST=r4.siua.ac.cr
-    - ZBX_ACTIVE_ALLOW=true
-    - ZBX_METADATA=docker-autoreg
-  volumes:
-    - /proc:/proc
-    - /sys:/sys:ro
-    - /var/run/docker.sock:/var/run/docker.sock
+services:
+  ##########################
+  # ZABBIX AGENT 2
+  ###########################
+  zabbix-agent2:
+    image: zabbix/zabbix-agent2:ubuntu-7.4.3
+    container_name: databus-zabbix-agent2
+    restart: unless-stopped
+    privileged: true
+    group_add:
+      - "990"
+    #    networks:
+    #      net0:
+    #        ipv4_address: ${ZBX_AGENT2_IP}
+    #user: "1001:996"
+    environment:
+      - ZBX_SERVER_HOST=${ZBX_SERVER_IP}
+      - ZBX_ACTIVE_ALLOW=${ZBX_ACTIVE_ALLOW}
+      - ZBX_HOSTNAME=${ZBX_HOSTNAME}
+      - ZBX_METADATA=${ZBX_METADATA}
+      - ZBX_HOSTINTERFACE=1:zabbix.databus.ucr.ac.cr:10050
+    volumes:
+      - /proc:/proc
+      - /sys:/sys:ro
+      - /var/run/docker.sock:/var/run/docker.sock
