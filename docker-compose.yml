@@ -120,7 +120,12 @@ services:
       zabbix-server-pgsql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8080/api_jsonrpc.php"]
+      test:
+        - "CMD-SHELL"
+        - |
+          curl -sf -X POST http://localhost:8080/api_jsonrpc.php \
+          -H "Content-Type: application/json" \
+          -d '{"jsonrpc":"2.0","method":"apiinfo.version","params":{},"id":1}' || exit 1
       interval: 10s
       timeout: 5s
       retries: 15

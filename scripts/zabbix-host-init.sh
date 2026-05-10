@@ -29,26 +29,26 @@ TOKEN=$(curl -sf -X POST "$API" \
 echo "🔑 Token obtenido: $TOKEN"
 
 # ── 2. Obtener o crear Host Group ──────────────────────────────────────────────
-GROUP_ID=$(curl -sf -X POST "$API" \
+GROUP_ID=$(curl -s -X POST "$API" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"jsonrpc\": \"2.0\",
-    \"method\": \"hostgroup.get\",
-    \"params\": {\"filter\": {\"name\": [\"$HOST_GROUP\"]}},
-    \"auth\": \"$TOKEN\",
-    \"id\": 2
-  }" | grep -o '"groupid":"[^"]*"' | head -1 | cut -d'"' -f4)
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "hostgroup.get",
+    "params": {"filter": {"name": ["$HOST_GROUP"]}},
+    "id": 5
+  }' | grep -o '"groupid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
 if [ -z "$GROUP_ID" ]; then
   echo "📁 Creando grupo: $HOST_GROUP"
   GROUP_ID=$(curl -sf -X POST "$API" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
     -d "{
-      \"jsonrpc\": \"2.0\",
-      \"method\": \"hostgroup.create\",
-      \"params\": {\"name\": \"$HOST_GROUP\"},
-      \"auth\": \"$TOKEN\",
-      \"id\": 3
+      "jsonrpc": "2.0",
+      "method": "hostgroup.create",
+      "params": {"name": "$HOST_GROUP"},
+      "id": 3
     }" | grep -o '"groupids":\["[^"]*"' | cut -d'"' -f3)
 fi
 echo "📁 Group ID: $GROUP_ID"
@@ -56,11 +56,11 @@ echo "📁 Group ID: $GROUP_ID"
 # ── 3. Obtener Template ID ─────────────────────────────────────────────────────
 TEMPLATE_ID=$(curl -sf -X POST "$API" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN"
   -d "{
     \"jsonrpc\": \"2.0\",
     \"method\": \"template.get\",
     \"params\": {\"filter\": {\"host\": [\"$HOST_TEMPLATE\"]}},
-    \"auth\": \"$TOKEN\",
     \"id\": 4
   }" | grep -o '"templateid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
@@ -69,11 +69,11 @@ echo "📋 Template ID: $TEMPLATE_ID"
 # ── 4. Verificar si el host ya existe ─────────────────────────────────────────
 HOST_ID=$(curl -sf -X POST "$API" \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN"
   -d "{
     \"jsonrpc\": \"2.0\",
     \"method\": \"host.get\",
     \"params\": {\"filter\": {\"host\": [\"$HOST_NAME\"]}},
-    \"auth\": \"$TOKEN\",
     \"id\": 5
   }" | grep -o '"hostid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
@@ -83,17 +83,18 @@ if [ -n "$HOST_ID" ]; then
   # Obtener interfaz actual
   IFACE_ID=$(curl -sf -X POST "$API" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN"
     -d "{
       \"jsonrpc\": \"2.0\",
       \"method\": \"hostinterface.get\",
       \"params\": {\"hostids\": \"$HOST_ID\"},
-      \"auth\": \"$TOKEN\",
       \"id\": 6
     }" | grep -o '"interfaceid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
   # Actualizar interfaz a DNS
   curl -sf -X POST "$API" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN"
     -d "{
       \"jsonrpc\": \"2.0\",
       \"method\": \"hostinterface.update\",
@@ -106,7 +107,6 @@ if [ -n "$HOST_ID" ]; then
         \"port\": \"$HOST_PORT\",
         \"main\": 1
       },
-      \"auth\": \"$TOKEN\",
       \"id\": 7
     }"
   echo "✅ Interfaz actualizada a DNS: $HOST_DNS:$HOST_PORT"
@@ -115,6 +115,7 @@ else
   echo "➕ Creando host: $HOST_NAME"
   curl -sf -X POST "$API" \
     -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN"
     -d "{
       \"jsonrpc\": \"2.0\",
       \"method\": \"host.create\",
@@ -131,7 +132,6 @@ else
         \"groups\": [{\"groupid\": \"$GROUP_ID\"}],
         \"templates\": [{\"templateid\": \"$TEMPLATE_ID\"}]
       },
-      \"auth\": \"$TOKEN\",
       \"id\": 8
     }"
   echo "✅ Host creado con DNS: $HOST_DNS:$HOST_PORT"
