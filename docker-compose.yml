@@ -152,10 +152,12 @@ services:
   zabbix-agent2:
     image: zabbix/zabbix-agent2:ubuntu-7.4.3
     container_name: zabbix-agent2
+    hostname: Zabbix server
     restart: unless-stopped
     privileged: true
     group_add:
       - "990"
+    # - "$DOCKER_GID"
     #    networks:
     #      net0:
     #        ipv4_address: ${ZBX_AGENT2_IP}
@@ -163,9 +165,9 @@ services:
     environment:
       - ZBX_SERVER_HOST=${ZBX_SERVER_IP}
       - ZBX_ACTIVE_ALLOW=${ZBX_ACTIVE_ALLOW}
-      - ZBX_HOSTNAME=${ZBX_HOSTNAME}
+      #- ZBX_HOSTNAME=${ZBX_HOSTNAME}
       - ZBX_METADATA=${ZBX_METADATA}
-      # - ZBX_HOSTINTERFACE=1:zabbix-agent2:10050
+      - ZBX_HOSTINTERFACE=zabbix-agent2
     volumes:
       - /proc:/proc
       - /sys:/sys:ro
