@@ -17,7 +17,7 @@ Incluye base de datos optimizada, servidor, interfaz web, SNMP traps y agente2 l
 | **Zabbix Server**      | 7.4.6   | Motor central de monitoreo              |
 | **Zabbix Web**         | 7.4.6   | Interfaz gráfica (Nginx + PHP-FPM)      |
 | **Zabbix Agent2**      | 7.4.3   | Agente avanzado para monitoreo del host |
-| **SNMP Trap Receiver** | 7.4.6   | Receptor de traps SNMP puerto 162       |
+
 
 ---
 
