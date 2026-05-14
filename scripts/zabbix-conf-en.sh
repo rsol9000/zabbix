@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ########################################################################################################################
 ###### Installation script for Zabbix, executed by the zabbix-init service, defined in docker-compose.yml #############
 ########################################################################################################################
@@ -61,7 +61,7 @@ else
   echo "   - 🔑 Authenticated with default user: $DEFAULT_USER"
   flag_new_user=TRUE
 fi
-echo "   - 🔑 Token obtained: $TOKEN"
+echo "   - 🔑 Token obtained successfully"
 
 #############################################################################################################
 ###############################    2. GET OR CREATE HOST GROUP    ############################################
@@ -128,8 +128,8 @@ if [ -n "$HOST_ID" ]; then
 # ── 4.2.2. Validate IFACE_ID ──────────────────────────────────────────────
   if [ -z "$IFACE_ID" ]; then
     echo "❌ No interface found for host $HOST_ID, exiting..."
-  exit 1
-    fi
+    exit 1
+  fi
 
 # ── 4.2.3. Update interface to DNS ──────────────────────────────────────────
   curl -sf -X POST "$API_URL" \
@@ -307,7 +307,7 @@ if [ "$flag_new_user" = "TRUE" ]; then
     exit 1
   fi
 
-  echo "   - 🔑 New user token: $NEW_TOKEN"
+  echo "   - 🔑 New user token obtained successfully"
   echo "ℹ️  Proceeding to delete default account"
 
 # ── 7.2. Get Admin user ID ────────────────────────────────────────────────

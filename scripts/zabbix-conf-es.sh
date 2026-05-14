@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 ########################################################################################################################
 ###### Script de instalacion de Zabbix, es ejecutado por el servicio zabbix-init, definido en docker-compose.yml #######
 ########################################################################################################################
@@ -57,7 +57,7 @@ else
   echo "   - 🔑 Autenticado con usuario por defecto: $DEFAULT_USER"
   flag_new_user=TRUE
 fi
-echo "   - 🔑 Token obtenido: $TOKEN"
+echo "   - 🔑 Token obtenido correctamente"
 
 #############################################################################################################
 ###############################    2. Obtener o crear Host Group    #########################################
@@ -309,7 +309,7 @@ if [ "$flag_new_user" = "TRUE" ]; then
     exit 1
   fi
 
-  echo "   - 🔑 Token nuevo usuario: $NEW_TOKEN"
+  echo "   - 🔑 Token para el nuevo usuario obtenido correctamente"
   echo "ℹ️  Se procede a eliminar la cuenta por defecto"
 
   # ── 7.2. Obtener ID del usuario Admin ───────────────────────

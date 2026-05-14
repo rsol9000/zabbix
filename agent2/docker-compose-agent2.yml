@@ -4,9 +4,11 @@ services:
   ###########################
   zabbix-agent2:
     image: zabbix/zabbix-agent2:ubuntu-7.4.3
-    container_name: databus-zabbix-agent2
-    hostname: databus host
+    container_name: zabbix-agent2
+    hostname: ${REMOTE_AGENT_HOSTNAME}
     restart: unless-stopped
+    env_file:
+      - ../.env
     privileged: true
     ports:
       - "10050:10050" # Para poder ser alcanzado por el servidor ZABBIX
@@ -17,12 +19,13 @@ services:
     #        ipv4_address: ${ZBX_AGENT2_IP}
     #user: "1001:996"
     environment:
-      - TZ=America/Costa_Rica
-      - ZBX_SERVER_HOST=r4.siua.ac.cr
+      - TZ=${TZ}
+      - ZBX_SERVER_HOST=${SERVER_FQDN}
+      - ZBX_HOSTNAME=${REMOTE_AGENT_HOSTNAME}
+      - ZBX_METADATA=${ZBX_METADATA}
+      - ZBX_HOSTINTERFACE=${AGENT_FQDN}
       - ZBX_ACTIVE_ALLOW=true
-      #- ZBX_HOSTNAME=${ZBX_HOSTNAME}
-      - ZBX_METADATA=docker-autoreg
-      - ZBX_HOSTINTERFACE=databus.siua.ac.cr
+      - ZBX_REFRESH_ACTIVE_CHECKS=${ZBX_REFRESH_ACTIVE_CHECKS}
     volumes:
       - /proc:/proc
       - /sys:/sys:ro

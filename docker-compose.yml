@@ -39,6 +39,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
+      - TZ=${TZ}
     volumes:
       - zabbix-postgresdb:/var/lib/postgresql/data
       - ./backups:/backups
@@ -51,18 +52,18 @@ services:
   ###########################
   # SNMP TRAPS
   ###########################
-  zabbix-snmptraps:
-    image: zabbix/zabbix-snmptraps:latest
-    container_name: zabbix-snmptraps
-    restart: unless-stopped
+  #zabbix-snmptraps:
+  #  image: zabbix/zabbix-snmptraps:latest
+  #  container_name: zabbix-snmptraps
+  #  restart: unless-stopped
     #  networks:
     #    net0:
     #      ipv4_address: ${ZBX_TRAPS_IP}
-    ports:
-      - "162:1162/udp"
-    volumes:
-      - zabbix-snmptraps:/var/lib/zabbix/snmptraps:rw
-      - ./mibs:/usr/share/snmp/mibs:ro
+  #  ports:
+  #    - "162:1162/udp"
+  #  volumes:
+  #    - zabbix-snmptraps:/var/lib/zabbix/snmptraps:rw
+  #    - ./mibs:/usr/share/snmp/mibs:ro
     #security_opt:
     #  - seccomp=unconfined
 
@@ -85,6 +86,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=${POSTGRES_DB}
       - ZBX_ENABLE_SNMP_TRAPS=${ZBX_ENABLE_SNMP_TRAPS}
+      - TZ=${TZ}
     ports:
       - "10051:10051"
     volumes:
@@ -168,6 +170,7 @@ services:
       #- ZBX_HOSTNAME=${ZBX_HOSTNAME}
       - ZBX_METADATA=${ZBX_METADATA}
       - ZBX_HOSTINTERFACE=zabbix-agent2
+      - TZ=${TZ}
     volumes:
       - /proc:/proc
       - /sys:/sys:ro
@@ -180,7 +183,7 @@ services:
     image: alpine/curl:latest
     env_file: .env
     volumes:
-      - ./scripts/zabbix-host-init.sh:/init.sh:ro
+      - ./scripts/zabbix-conf-en.sh:/init.sh:ro
     entrypoint: ["sh", "/init.sh"]
     depends_on:
       zabbix-dashboard:
