@@ -1,26 +1,36 @@
 #!/bin/bash
-####################################################################################################################
-## Script de instalacion de Zabbix, es ejecutado por el servicio zabbix-init.
-# SCRIPT PRINCIPAL zabbix-dev.sh Y MODIFICA LA INTERFAZ DEL AGENTE Y OTROS VALORES POS-INSTALACION
+########################################################################################################################
+###### Script de instalacion de Zabbix, es ejecutado por el servicio zabbix-init, definido en docker-compose.yml #######
+########################################################################################################################
 
-#---- Si hay error sale del script, e=exit on error, u=exit on undefined var
-# set -e
+#──── Si hay error sale del script, e=exit on error, u=exit on undefined var ──────────
 set -eu
-#---- Para saber si se debe crear un nuevo usuario con los datos API_WEB_USER y API_WEB_PASS de .env *** NO CAMBIAR EL VALOR ***
+#──── Para saber si se debe crear un nuevo usuario con los datos API_WEB_USER y API_WEB_PASS de .env *** NO CAMBIAR EL VALOR *** ──────────
 flag_new_user=FALSE           
 
 #############################################################################################################
 #######################################    0. API DISPONIBLE?   #############################################
 #############################################################################################################
-
 echo "⏳ Esperando que Zabbix API esté disponible..."
+MAX_RETRIES=10      
+COUNT=0
+
 until curl -sf -o /dev/null -X POST "$API_URL" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"apiinfo.version","params":{},"id":1}'; do
+  
+  COUNT=$((COUNT + 1))
+  
+  if [ "$COUNT" -ge "$MAX_RETRIES" ]; then
+    echo "❌ API no disponible después de $MAX_RETRIES intentos, saliendo..."
+    exit 1
+  fi
+  
+  echo "⏳ Intento $COUNT/$MAX_RETRIES — reintentando en 5 segundos..."
   sleep 5
 done
-echo "✅ API disponible"
 
+echo "✅ API disponible"
 #############################################################################################################
 ##########################################    1. Autenticar   ###############################################
 #############################################################################################################
@@ -69,7 +79,6 @@ if [ -z "$GROUP_ID" ]; then
 else
   echo "📁 El grupo \"$HOST_GROUP\" ya existe."
 fi
-
 echo "   - 📁 Groupname: '$HOST_GROUP' ID: $GROUP_ID"
 
 #############################################################################################################
@@ -83,7 +92,6 @@ TEMPLATE_ID=$(curl -sf -X POST "$API_URL" \
   | grep -o '"templateid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
 # ── 3.1. Validación del TEMPLATE_ID ─────────────────────────────────
-
 if [ -z "$TEMPLATE_ID" ]; then
   echo "❌ Template '$HOST_TEMPLATE' no encontrado, saliendo..."
   exit 1
@@ -101,50 +109,39 @@ HOST_ID=$(curl -sf -X POST "$API_URL" \
   -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.get\",\"params\":{\"filter\":{\"host\":[\"$HOST_NAME\"]}},\"id\":5}" \
   | grep -o '"hostid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-#################
-### SI EXISTE ###
-#################
-
+# ── 4.1.1 Si existe se actualiza interfaz ──────────────────────────────
 if [ -n "$HOST_ID" ]; then
   echo "🔄 Host ya existe (ID: $HOST_ID), actualizando interfaz..."
 
-# ── 4.1. Obtener interfaz actual ─────────────────────────────────────────
-
+# ── 4.2. Obtener interfaz actual ───────────────────────────────────────
   IFACE_ID=$(curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d "{\"jsonrpc\":\"2.0\",\"method\":\"hostinterface.get\",\"params\":{\"hostids\":\"$HOST_ID\"},\"id\":6}" \
     | grep -o '"interfaceid":"[^"]*"' | head -1 | cut -d'"' -f4)
     
-# ── 4.1.1. Validación del IFACE_ID ─────────────────────────────────
-
+# ── 4.1.1. Validación del IFACE_ID ──────────────────────────────────────
 if [ -z "$IFACE_ID" ]; then
   echo "❌ No se encontró interfaz para el host $HOST_ID, saliendo..."
   exit 1
 fi
-# ── 4.2. Actualizar interfaz a DNS ─────────────────────────────────────────
 
+# ── 4.2. Actualizar interfaz a DNS ──────────────────────────────────────
   curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d "{\"jsonrpc\":\"2.0\",\"method\":\"hostinterface.update\",\"params\":{\"interfaceid\":\"$IFACE_ID\",\"type\":1,\"useip\":0,\"dns\":\"$HOST_DNS\",\"ip\":\"\",\"port\":\"$HOST_PORT\",\"main\":1},\"id\":7}" > /dev/null
   echo "   - ✅ Interfaz actualizada a DNS: $HOST_DNS:$HOST_PORT"
-
 else
 
-#################
-### NO EXISTE ###
-#################
-
+# ── 4.2.1. Si no existe se crea ────────────────────
   echo "➕ Creando host: $HOST_NAME"
   curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.create\",\"params\":{\"host\":\"$HOST_NAME\",\"interfaces\":[{\"type\":1,\"main\":1,\"useip\":0,\"ip\":\"\",\"dns\":\"$HOST_DNS\",\"port\":\"$HOST_PORT\"}],\"groups\":[{\"groupid\":\"$GROUP_ID\"}],\"templates\":[{\"templateid\":\"$TEMPLATE_ID\"}]},\"id\":8}"
-
   echo "✅ Host creado con DNS: $HOST_DNS:$HOST_PORT"
 fi
-
   echo "ℹ️  Creando la accion de autoregistro para los agentes remotos"
 
 #############################################################################################################
@@ -328,7 +325,6 @@ if [ "$flag_new_user" = "TRUE" ]; then
     echo "⚠️ Usuario Admin no encontrado, puede ser que ya ha sido eliminado, saliendo..."
     exit 0
   fi
-  
   echo "   - 🔍 Admin ID: $ADMIN_ID"
 
   # ── 7.2.2 Transferir mapas de Admin al nuevo usuario ──────
@@ -362,8 +358,7 @@ if [ "$flag_new_user" = "TRUE" ]; then
       -d "{\"jsonrpc\":\"2.0\",\"method\":\"dashboard.update\",\"params\":{\"dashboardid\":\"$DASH_ID\",\"userid\":\"$NEW_USER_ID\"},\"id\":1}" > /dev/null
     echo "   - 📊  Dashboard '$DASH_ID' transferido"
   done
-
-
+  
   # ── 7.2.4 Eliminar usuario Admin ──────────────────────────────
   echo "🗑️  Eliminando usuario Admin..."
   curl -s -X POST "$API_URL" \
