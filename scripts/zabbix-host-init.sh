@@ -1,5 +1,6 @@
 #!/bin/bash
-# SCRIPT QUE CORRE POSTERIOR AL DOCKER COMPOSE LO EJECUTA EL SERVICIO, Y SE EJECUTA TRAS CORRER EL COMPOSE O EL
+####################################################################################################################
+## Script de instalacion de Zabbix, es ejecutado por el servicio zabbix-init.
 # SCRIPT PRINCIPAL zabbix-dev.sh Y MODIFICA LA INTERFAZ DEL AGENTE Y OTROS VALORES POS-INSTALACION
 
 #---- Si hay error sale del script, e=exit on error, u=exit on undefined var
