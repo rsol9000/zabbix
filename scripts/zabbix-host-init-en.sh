@@ -11,7 +11,7 @@ flag_new_user=FALSE
 #############################################################################################################
 #######################################    0. IS API AVAILABLE?   ###########################################
 #############################################################################################################
-echo "⏳ Esperando que Zabbix API esté disponible..."
+echo "⏳ Waiting for Zabbix API to be available..."
 MAX_RETRIES=10      
 COUNT=0
 
@@ -22,42 +22,43 @@ until curl -sf -o /dev/null -X POST "$API_URL" \
   COUNT=$((COUNT + 1))
   
   if [ "$COUNT" -ge "$MAX_RETRIES" ]; then
-    echo "❌ API no disponible después de $MAX_RETRIES intentos, saliendo..."
+    echo "❌ API not available after $MAX_RETRIES attempts, exiting..."
     exit 1
   fi
   
-  echo "⏳ Intento $COUNT/$MAX_RETRIES — reintentando en 5 segundos..."
+  echo "⏳ Attempt $COUNT/$MAX_RETRIES — retrying in 5 seconds..."
   sleep 5
 done
 
-echo "✅ API disponible"
+echo "✅ API available"
+
 #############################################################################################################
 ##########################################    1. AUTHENTICATE   #############################################
 #############################################################################################################
 
-echo "🔒 Autenticando con usuario por defecto..."
+echo "🔒 Authenticating with default user..."
 TOKEN=$(curl -sf -X POST "$API_URL" \
   -H "Content-Type: application/json" \
   -d "{\"jsonrpc\":\"2.0\",\"method\":\"user.login\",\"params\":{\"username\":\"$DEFAULT_USER\",\"password\":\"$DEFAULT_PASS\"},\"id\":1}" \
   | grep -o '"result":"[^"]*"' | cut -d'"' -f4)
 
 if [ -z "$TOKEN" ]; then
-  echo "⚠️  Fallo la autenticacion con el usuario por defecto, intentando con el usuario '$API_WEB_USER' definido en .env..."
+  echo "⚠️  Authentication failed with default user, trying with user '$API_WEB_USER' defined in .env..."
   TOKEN=$(curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -d "{\"jsonrpc\":\"2.0\",\"method\":\"user.login\",\"params\":{\"username\":\"$API_WEB_USER\",\"password\":\"$API_WEB_PASS\"},\"id\":1}" \
     | grep -o '"result":"[^"]*"' | cut -d'"' -f4)
 
   if [ -z "$TOKEN" ]; then
-    echo "❌ Error: no se pudo autenticar con ningún usuario, saliendo..."
+    echo "❌ Could not authenticate with any user, exiting..."
     exit 1
   fi
-  echo "   - 🔑 Autenticado con usuario .env: $API_WEB_USER"
+  echo "   - 🔑 Authenticated with .env user: $API_WEB_USER"
 else
-  echo "   - 🔑 Autenticado con usuario por defecto: $DEFAULT_USER"
+  echo "   - 🔑 Authenticated with default user: $DEFAULT_USER"
   flag_new_user=TRUE
 fi
-echo "   - 🔑 Token obtenido: $TOKEN"
+echo "   - 🔑 Token obtained: $TOKEN"
 
 #############################################################################################################
 ###############################    2. GET OR CREATE HOST GROUP    ############################################
@@ -70,14 +71,14 @@ GROUP_ID=$(curl -s -X POST "$API_URL" \
   | grep -o '"groupid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
 if [ -z "$GROUP_ID" ]; then
-  echo "📁 Creando grupo: $HOST_GROUP"
+  echo "📁 Creating group: $HOST_GROUP"
   GROUP_ID=$(curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d "{\"jsonrpc\":\"2.0\",\"method\":\"hostgroup.create\",\"params\":{\"name\":\"$HOST_GROUP\"},\"id\":3}" \
     | grep -o '"groupids":\["[^"]*"' | cut -d'"' -f4)
 else
-  echo "📁 El grupo \"$HOST_GROUP\" ya existe."
+  echo "📁 Group \"$HOST_GROUP\" already exists."
 fi
 echo "   - 📁 Groupname: '$HOST_GROUP' ID: $GROUP_ID"
 
@@ -93,7 +94,7 @@ TEMPLATE_ID=$(curl -sf -X POST "$API_URL" \
 
 # ── 3.1. Validate TEMPLATE_ID ─────────────────────────────────
 if [ -z "$TEMPLATE_ID" ]; then
-  echo "❌ Template '$HOST_TEMPLATE' no encontrado, saliendo..."
+  echo "❌ Template '$HOST_TEMPLATE' not found, exiting..."
   exit 1
 fi
 
@@ -109,45 +110,45 @@ HOST_ID=$(curl -sf -X POST "$API_URL" \
   -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.get\",\"params\":{\"filter\":{\"host\":[\"$HOST_NAME\"]}},\"id\":5}" \
   | grep -o '"hostid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-# ── 4.1. If host exists — update interface ──────────────────────────────
+# ── 4.1. If host exists — update interface ────────────────────────────────
 if [ -n "$HOST_ID" ]; then
-  echo "🔄 Host ya existe (ID: $HOST_ID), actualizando interfaz..."
+  echo "🔄 Host already exists (ID: $HOST_ID), updating interface..."
 
-# ── 4.2. Get current interface ───────────────────────────────────────────
+# ── 4.2. Get current interface ────────────────────────────────────────────
   IFACE_ID=$(curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d "{\"jsonrpc\":\"2.0\",\"method\":\"hostinterface.get\",\"params\":{\"hostids\":\"$HOST_ID\"},\"id\":6}" \
     | grep -o '"interfaceid":"[^"]*"' | head -1 | cut -d'"' -f4)
-    
-# ── 4.2.1. Validate IFACE_ID ─────────────────────────────────────────────
+
+# ── 4.2.1. Validate IFACE_ID ──────────────────────────────────────────────
 if [ -z "$IFACE_ID" ]; then
-  echo "❌ No se encontró interfaz para el host $HOST_ID, saliendo..."
+  echo "❌ No interface found for host $HOST_ID, exiting..."
   exit 1
 fi
 
-# ── 4.3. Update interface to DNS ─────────────────────────────────────────
+# ── 4.3. Update interface to DNS ──────────────────────────────────────────
   curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d "{\"jsonrpc\":\"2.0\",\"method\":\"hostinterface.update\",\"params\":{\"interfaceid\":\"$IFACE_ID\",\"type\":1,\"useip\":0,\"dns\":\"$HOST_DNS\",\"ip\":\"\",\"port\":\"$HOST_PORT\",\"main\":1},\"id\":7}" > /dev/null
-  echo "   - ✅ Interfaz actualizada a DNS: $HOST_DNS:$HOST_PORT"
+  echo "   - ✅ Interface updated to DNS: $HOST_DNS:$HOST_PORT"
 else
 
-# ── 4.4. If host does not exist — create it ──────────────────────────────
-  echo "➕ Creando host: $HOST_NAME"
+# ── 4.4. If host does not exist — create it ───────────────────────────────
+  echo "➕ Creating host: $HOST_NAME"
   curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.create\",\"params\":{\"host\":\"$HOST_NAME\",\"interfaces\":[{\"type\":1,\"main\":1,\"useip\":0,\"ip\":\"\",\"dns\":\"$HOST_DNS\",\"port\":\"$HOST_PORT\"}],\"groups\":[{\"groupid\":\"$GROUP_ID\"}],\"templates\":[{\"templateid\":\"$TEMPLATE_ID\"}]},\"id\":8}" > /dev/null
-  echo "✅ Host creado con DNS: $HOST_DNS:$HOST_PORT"
+  echo "✅ Host created with DNS: $HOST_DNS:$HOST_PORT"
 fi
 
 #############################################################################################################
 ############################    5. CREATE AUTOREGISTRATION ACTION   #########################################
 #############################################################################################################
 
-# ── 5.1. Check if action already exists ──────────────────────────────────
+# ── 5.1. Check if action already exists ───────────────────────────────────
 ACTION_ID=$(curl -s -X POST "$API_URL" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
@@ -158,9 +159,9 @@ if [ -z "$ACTION_ID" ]; then
 ####################
 ### DOES NOT EXIST ###
 ####################
-  echo "ℹ️  Creando la accion de autoregistro para los agentes remotos"
+  echo "ℹ️  Creating autoregistration action for remote agents"
 
-  # ── 5.2. Get group IDs ───────────────────────────────────────────────────
+  # ── 5.2. Get group IDs ──────────────────────────────────────────────────
   GROUP_ADD_ID=$(curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
@@ -173,7 +174,7 @@ if [ -z "$ACTION_ID" ]; then
     -d "{\"jsonrpc\":\"2.0\",\"method\":\"hostgroup.get\",\"params\":{\"filter\":{\"name\":[\"Discovered hosts\"]},\"output\":[\"groupid\"]},\"id\":1}" \
     | grep -o '"groupid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
-  # ── 5.3. Get template IDs ────────────────────────────────────────────────
+  # ── 5.3. Get template IDs ───────────────────────────────────────────────
   TMPL_DOCKER_ID=$(curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
@@ -191,7 +192,7 @@ if [ -z "$ACTION_ID" ]; then
   echo "   - 📋 Docker template: $TMPL_DOCKER_ID"
   echo "   - 📋 Linux template : $TMPL_LINUX_ID"
 
-  # ── 5.4. Create action ───────────────────────────────────────────────────
+  # ── 5.4. Create action ──────────────────────────────────────────────────
   curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
@@ -201,14 +202,14 @@ else
 ################
 ### EXISTS   ###
 ################
-  echo "   - ℹ️  Action already exists"
+  echo "   - ℹ️  Autoregistration action already exists"
 fi
 
 #############################################################################################################
 ###########   6. CREATE NEW USER — only when authenticated with default credentials   #######################
 #############################################################################################################
 
-# ── 6.1. Get Super Admin role ID ─────────────────────────────────────────
+# ── 6.1. Get Super Admin role ID ──────────────────────────────────────────
 if [ "$flag_new_user" = "TRUE" ]; then
   echo "ℹ️  Creating new user '$API_WEB_USER' and removing default account"
   echo "🔍 Getting Super Admin role..."
@@ -240,7 +241,7 @@ if [ "$flag_new_user" = "TRUE" ]; then
   fi
   echo "   - 👥 'Zabbix administrators' usergroup ID: $USERGROUP_ID_0"
 
-  # ── 6.3. Get Internal group ID ───────────────────────────────────────────
+  # ── 6.3. Get Internal group ID ────────────────────────────────────────────
   echo "🔍 Getting 'Internal' group ID..."
   USERGROUP_ID_1=$(curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
@@ -275,7 +276,7 @@ if [ "$flag_new_user" = "TRUE" ]; then
       -d "{\"jsonrpc\":\"2.0\",\"method\":\"user.create\",\"params\":{\"username\":\"$API_WEB_USER\",\"passwd\":\"$API_WEB_PASS\",\"roleid\":\"$ROLE_ID\",\"usrgrps\":[{\"usrgrpid\":\"$USERGROUP_ID_0\"},{\"usrgrpid\":\"$USERGROUP_ID_1\"}],\"name\":\"$API_WEB_USER\",\"autologin\":0,\"autologout\":\"0\"},\"id\":1}" \
       | grep -o '"userids":\["[^"]*"' | cut -d'"' -f4)
 
-    # ── 6.4.4. Validate NEW_USER_ID ────────────────────────────────────────
+    # ── 6.4.4. Validate NEW_USER_ID ──────────────────────────────────────────
     if [ -z "$NEW_USER_ID" ]; then
       echo "❌ Something went wrong creating user $API_WEB_USER, default account will NOT be deleted..."
       echo "🛡️  Verify that the password in .env meets Zabbix security policies:"
@@ -292,7 +293,7 @@ if [ "$flag_new_user" = "TRUE" ]; then
 #####################################   7. DELETE DEFAULT ACCOUNT   #########################################
 #############################################################################################################
 
-  # ── 7.1. Login with new user ─────────────────────────────────────────────
+  # ── 7.1. Login with new user ──────────────────────────────────────────────
   echo "   - 🔑 Authenticating with new user..."
   NEW_TOKEN=$(curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
@@ -301,14 +302,14 @@ if [ "$flag_new_user" = "TRUE" ]; then
 
   # ── 7.1.1. Validate NEW_TOKEN ────────────────────────────────────────────
   if [ -z "$NEW_TOKEN" ]; then
-    echo "⚠️ Could not authenticate with new user, exiting..."
+    echo "⚠️  Could not authenticate with new user, exiting..."
     exit 1
   fi
 
   echo "   - 🔑 New user token: $NEW_TOKEN"
   echo "ℹ️  Proceeding to delete default account"
 
-  # ── 7.2. Get Admin user ID ───────────────────────────────────────────────
+  # ── 7.2. Get Admin user ID ────────────────────────────────────────────────
   echo "🔍 Looking up Admin user..."
   ADMIN_ID=$(curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
@@ -318,12 +319,12 @@ if [ "$flag_new_user" = "TRUE" ]; then
 
   # ── 7.2.1. Validate ADMIN_ID ─────────────────────────────────────────────
   if [ -z "$ADMIN_ID" ]; then
-    echo "⚠️ Admin user not found, may have already been deleted, exiting..."
+    echo "⚠️  Admin user not found, may have already been deleted, exiting..."
     exit 0
   fi
   echo "   - 🔍 Admin ID: $ADMIN_ID"
 
-  # ── 7.2.2. Transfer maps from Admin to new user ──────────────────────────
+  # ── 7.2.2. Transfer maps from Admin to new user ───────────────────────────
   echo "🗺️  Transferring maps from 'Admin' to new user '$API_WEB_USER'..."
   MAPS=$(curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
@@ -355,7 +356,7 @@ if [ "$flag_new_user" = "TRUE" ]; then
     echo "   - 📊  Dashboard '$DASH_ID' transferred"
   done
 
-  # ── 7.2.4. Delete Admin user ─────────────────────────────────────────────
+  # ── 7.2.4. Delete Admin user ──────────────────────────────────────────────
   echo "🗑️  Deleting Admin user..."
   curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
@@ -369,5 +370,5 @@ else
   echo "ℹ️  No new user required"
   echo "   - 👨‍💻 Active user: $API_WEB_USER"
 fi
-  
+
 echo "🎉 Initialization complete"
