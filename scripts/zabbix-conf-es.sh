@@ -106,7 +106,7 @@ echo "📋 '$HOST_TEMPLATE' template ID: $TEMPLATE_ID"
 HOST_ID=$(curl -sf -X POST "$API_URL" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.get\",\"params\":{\"filter\":{\"host\":[\"$HOST_NAME\"]}},\"id\":5}" \
+  -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.get\",\"params\":{\"filter\":{\"host\":[\"$LOCAL_HOST_NAME\"]}},\"id\":5}" \
   | grep -o '"hostid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
 # ── 4.1.1 Si existe se actualiza interfaz ──────────────────────────────
@@ -135,11 +135,11 @@ fi
 else
 
 # ── 4.2.1. Si no existe se crea ────────────────────
-  echo "➕ Creando host: $HOST_NAME"
+  echo "➕ Creando host: $LOCAL_HOST_NAME"
   curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
-    -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.create\",\"params\":{\"host\":\"$HOST_NAME\",\"interfaces\":[{\"type\":1,\"main\":1,\"useip\":0,\"ip\":\"\",\"dns\":\"$HOST_DNS\",\"port\":\"$HOST_PORT\"}],\"groups\":[{\"groupid\":\"$GROUP_ID\"}],\"templates\":[{\"templateid\":\"$TEMPLATE_ID\"}]},\"id\":8}"
+    -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.create\",\"params\":{\"host\":\"$LOCAL_HOST_NAME\",\"interfaces\":[{\"type\":1,\"main\":1,\"useip\":0,\"ip\":\"\",\"dns\":\"$HOST_DNS\",\"port\":\"$HOST_PORT\"}],\"groups\":[{\"groupid\":\"$GROUP_ID\"}],\"templates\":[{\"templateid\":\"$TEMPLATE_ID\"}]},\"id\":8}"
   echo "✅ Host creado con DNS: $HOST_DNS:$HOST_PORT"
 fi
   echo "ℹ️  Creando la accion de autoregistro para los agentes remotos"
@@ -155,6 +155,7 @@ ACTION_ID=$(curl -s -X POST "$API_URL" \
   -H "Authorization: Bearer $TOKEN" \
   -d "{\"jsonrpc\":\"2.0\",\"method\":\"action.get\",\"params\":{\"filter\":{\"name\":[\"Autoregistro-agentes-simovilab\"]},\"output\":[\"actionid\"]},\"id\":1}" \
   | grep -o '"actionid":"[^"]*"' | head -1 | cut -d'"' -f4)
+  
 
 if [ -z "$ACTION_ID" ]; then
 #################
@@ -195,12 +196,18 @@ if [ -z "$ACTION_ID" ]; then
 
   # ── 5.4. Crear Action ───────────────────────────────────────────
 
+  #curl -s -X POST "$API_URL" \
+  #-H "Content-Type: application/json" \
+  #-H "Authorization: Bearer $TOKEN" \
+  #-d "{\"jsonrpc\":\"2.0\",\"method\":\"action.create\",\"params\":{\"name\":\"Autoregistro-agentes-simovilab\",\"eventsource\":2,\"status\":0,\"filter\":{\"evaltype\":0,\"conditions\":[{\"conditiontype\":24,\"operator\":2,\"value\":\"docker-autoreg\"}]},\"operations\":[{\"operationtype\":2},{\"operationtype\":4,\"opgroup\":[{\"groupid\":\"$GROUP_ADD_ID\"}]},{\"operationtype\":5,\"opgroup\":[{\"groupid\":\"$GROUP_REMOVE_ID\"}]},{\"operationtype\":6,\"optemplate\":[{\"templateid\":\"$TMPL_DOCKER_ID\"},{\"templateid\":\"$TMPL_LINUX_ID\"}]}]},\"id\":1}" > /dev/null
+  #echo ""
+  #echo "   - ✅ Accion de autoregistro creada"
+
   curl -s -X POST "$API_URL" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d "{\"jsonrpc\":\"2.0\",\"method\":\"action.create\",\"params\":{\"name\":\"Autoregistro-agentes-simovilab\",\"eventsource\":2,\"status\":0,\"filter\":{\"evaltype\":0,\"conditions\":[{\"conditiontype\":24,\"operator\":2,\"value\":\"docker-autoreg\"}]},\"operations\":[{\"operationtype\":2},{\"operationtype\":4,\"opgroup\":[{\"groupid\":\"$GROUP_ADD_ID\"}]},{\"operationtype\":5,\"opgroup\":[{\"groupid\":\"$GROUP_REMOVE_ID\"}]},{\"operationtype\":6,\"optemplate\":[{\"templateid\":\"$TMPL_DOCKER_ID\"},{\"templateid\":\"$TMPL_LINUX_ID\"}]}]},\"id\":1}" > /dev/null
-  echo ""
-  echo "   - ✅ Accion de autoregistro creada"
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d "{\"jsonrpc\":\"2.0\",\"method\":\"action.create\",\"params\":{\"name\":\"Autoregistro-agentes-simovilab\",\"eventsource\":2,\"status\":0,\"filter\":{\"evaltype\":0,\"conditions\":[{\"conditiontype\":24,\"operator\":2,\"value\":\"docker-autoreg\"}]},\"operations\":[{\"operationtype\":2},{\"operationtype\":4,\"opgroup\":[{\"groupid\":\"$GROUP_ADD_ID\"}]},{\"operationtype\":5,\"opgroup\":[{\"groupid\":\"$GROUP_REMOVE_ID\"}]},{\"operationtype\":6,\"optemplate\":[{\"templateid\":\"$TMPL_DOCKER_ID\"},{\"templateid\":\"$TMPL_LINUX_ID\"}]},{\"operationtype\":9,\"optls\":{\"tls_connect\":2,\"tls_accept\":2,\"tls_psk_identity\":\"$ZBX_TLS_PSK_IDENTITY\",\"tls_psk\":\"$PSK_VALUE\"}}]},\"id\":1}" > /dev/null
+echo "   - ✅ Autoregistration action created"
 else
 #################
 ### SI EXISTE ###

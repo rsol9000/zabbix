@@ -7,7 +7,7 @@
 set -eu
 #──── Flag to determine if a new user should be created with API_WEB_USER and API_WEB_PASS from .env *** DO NOT CHANGE THE VALUE *** ──────────
 flag_new_user=FALSE           
-PSK_VALUE=$(cat psk/zabbix_agentd.psk)
+
 #############################################################################################################
 #######################################    0. IS API AVAILABLE?   ###########################################
 #############################################################################################################
@@ -31,12 +31,6 @@ until curl -sf -o /dev/null -X POST "$API_URL" \
 done
 
 echo "✅ API available"
-
-#############################################################################################################
-##################################    0.5. GENERATE TLS CERTIFICATES  ######################################
-#############################################################################################################
-
-
 
 #############################################################################################################
 ##########################################    1. AUTHENTICATE   #############################################
@@ -110,14 +104,14 @@ fi
 echo "📋 '$HOST_TEMPLATE' template ID: $TEMPLATE_ID"
 
 #############################################################################################################
-############################    4. CHECK IF LOCAL AGENT2 EXISTS   ###########################################
+#############################    4. CHECK IF HOST EXISTS   ##################################################
 #############################################################################################################
 
 # ── 4.1. Check if host already exists ───────────────────────────────────
 HOST_ID=$(curl -sf -X POST "$API_URL" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
-  -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.get\",\"params\":{\"filter\":{\"host\":[\"$LOCAL_HOST_NAME\"]}},\"id\":5}" \
+  -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.get\",\"params\":{\"filter\":{\"host\":[\"$HOST_NAME\"]}},\"id\":5}" \
   | grep -o '"hostid":"[^"]*"' | head -1 | cut -d'"' -f4)
 
 # ── 4.2. If host exists — update interface ────────────────────────────────
@@ -146,11 +140,11 @@ if [ -n "$HOST_ID" ]; then
 else
 
 # ── 4.3. If host does not exist — create it ───────────────────────────────
-  echo "➕ Creating host: $LOCAL_HOST_NAME"
+  echo "➕ Creating host: $HOST_NAME"
   curl -sf -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
-    -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.create\",\"params\":{\"host\":\"$LOCAL_HOST_NAME\",\"interfaces\":[{\"type\":1,\"main\":1,\"useip\":0,\"ip\":\"\",\"dns\":\"$HOST_DNS\",\"port\":\"$HOST_PORT\"}],\"groups\":[{\"groupid\":\"$GROUP_ID\"}],\"templates\":[{\"templateid\":\"$TEMPLATE_ID\"}]},\"id\":8}" > /dev/null
+    -d "{\"jsonrpc\":\"2.0\",\"method\":\"host.create\",\"params\":{\"host\":\"$HOST_NAME\",\"interfaces\":[{\"type\":1,\"main\":1,\"useip\":0,\"ip\":\"\",\"dns\":\"$HOST_DNS\",\"port\":\"$HOST_PORT\"}],\"groups\":[{\"groupid\":\"$GROUP_ID\"}],\"templates\":[{\"templateid\":\"$TEMPLATE_ID\"}]},\"id\":8}" > /dev/null
   echo "✅ Host created with DNS: $HOST_DNS:$HOST_PORT"
 fi
 
@@ -202,19 +196,11 @@ if [ -z "$ACTION_ID" ]; then
   echo "   - 📋 Linux template : $TMPL_LINUX_ID"
 
 # ── 5.3. Create action ──────────────────────────────────────────────────
-  #curl -s -X POST "$API_URL" \
-  #  -H "Content-Type: application/json" \
-  #  -H "Authorization: Bearer $TOKEN" \
-  #  -d "{\"jsonrpc\":\"2.0\",\"method\":\"action.create\",\"params\":{\"name\":\"Autoregistro-agentes-simovilab\",\"eventsource\":2,\"status\":0,\"filter\":{\"evaltype\":0,\"conditions\":[{\"conditiontype\":24,\"operator\":2,\"value\":\"docker-autoreg\"}]},\"operations\":[{\"operationtype\":2},{\"operationtype\":4,\"opgroup\":[{\"groupid\":\"$GROUP_ADD_ID\"}]},{\"operationtype\":5,\"opgroup\":[{\"groupid\":\"$GROUP_REMOVE_ID\"}]},{\"operationtype\":6,\"optemplate\":[{\"templateid\":\"$TMPL_DOCKER_ID\"},{\"templateid\":\"$TMPL_LINUX_ID\"}]}]},\"id\":1}" > /dev/null
-  #echo "   - ✅ Autoregistration action created"
-
-curl -s -X POST "$API_URL" \
+  curl -s -X POST "$API_URL" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
-    -d "{\"jsonrpc\":\"2.0\",\"method\":\"action.create\",\"params\":{\"name\":\"Autoregistro-agentes-simovilab\",\"eventsource\":2,\"status\":0,\"filter\":{\"evaltype\":0,\"conditions\":[{\"conditiontype\":24,\"operator\":2,\"value\":\"docker-autoreg\"}]},\"operations\":[{\"operationtype\":2},{\"operationtype\":4,\"opgroup\":[{\"groupid\":\"$GROUP_ADD_ID\"}]},{\"operationtype\":5,\"opgroup\":[{\"groupid\":\"$GROUP_REMOVE_ID\"}]},{\"operationtype\":6,\"optemplate\":[{\"templateid\":\"$TMPL_DOCKER_ID\"},{\"templateid\":\"$TMPL_LINUX_ID\"}]},{\"operationtype\":9,\"optls\":{\"tls_connect\":2,\"tls_accept\":2,\"tls_psk_identity\":\"$ZBX_TLS_PSK_IDENTITY\",\"tls_psk\":\"$PSK_VALUE\"}}]},\"id\":1}" > /dev/null
-echo "   - ✅ Autoregistration action created"
-
-  
+    -d "{\"jsonrpc\":\"2.0\",\"method\":\"action.create\",\"params\":{\"name\":\"Autoregistro-agentes-simovilab\",\"eventsource\":2,\"status\":0,\"filter\":{\"evaltype\":0,\"conditions\":[{\"conditiontype\":24,\"operator\":2,\"value\":\"docker-autoreg\"}]},\"operations\":[{\"operationtype\":2},{\"operationtype\":4,\"opgroup\":[{\"groupid\":\"$GROUP_ADD_ID\"}]},{\"operationtype\":5,\"opgroup\":[{\"groupid\":\"$GROUP_REMOVE_ID\"}]},{\"operationtype\":6,\"optemplate\":[{\"templateid\":\"$TMPL_DOCKER_ID\"},{\"templateid\":\"$TMPL_LINUX_ID\"}]}]},\"id\":1}" > /dev/null
+  echo "   - ✅ Autoregistration action created"
 else
 # ── 5.4. If action exists, do nothing ─────────────────────────────
   echo "   - ℹ️  Autoregistration action already exists"

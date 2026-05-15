@@ -154,7 +154,7 @@ services:
   zabbix-agent2:
     image: zabbix/zabbix-agent2:ubuntu-7.4.3
     container_name: zabbix-agent2
-    hostname: Zabbix server
+    hostname: ${LOCAL_HOST_NAME}
     restart: unless-stopped
     privileged: true
     group_add:
@@ -169,7 +169,7 @@ services:
       - ZBX_ACTIVE_ALLOW=${ZBX_ACTIVE_ALLOW}
       #- ZBX_HOSTNAME=${ZBX_HOSTNAME}
       - ZBX_METADATA=${ZBX_METADATA}
-      - ZBX_HOSTINTERFACE=zabbix-agent2
+      - ZBX_HOSTINTERFACE=${HOST_DNS}
       - TZ=${TZ}
     volumes:
       - /proc:/proc
@@ -184,7 +184,7 @@ services:
     env_file: .env
     volumes:
       - ./scripts/zabbix-conf-en.sh:/init.sh:ro
-    entrypoint: ["sh", "/init.sh"]
+    entrypoint: ["bash", "/init.sh"]
     depends_on:
       zabbix-dashboard:
         condition: service_healthy

@@ -11,7 +11,7 @@ services:
       - ../.env
     privileged: true
     ports:
-      - "10050:10050" # Para poder ser alcanzado por el servidor ZABBIX
+      - "${ZBX_PORTS}" # Para poder ser alcanzado por el servidor ZABBIX
     group_add:
       - "${DOCKER_GID}"
     #    networks:
@@ -24,9 +24,14 @@ services:
       - ZBX_HOSTNAME=${REMOTE_AGENT_HOSTNAME}
       - ZBX_METADATA=${ZBX_METADATA}
       - ZBX_HOSTINTERFACE=${AGENT_FQDN}
-      - ZBX_ACTIVE_ALLOW=true
+      - ZBX_ACTIVE_ALLOW=${ZBX_ACTIVE_ALLOW}
       - ZBX_REFRESH_ACTIVE_CHECKS=${ZBX_REFRESH_ACTIVE_CHECKS}
+      - ZBX_TLSCONNECT=${ZBX_TLSCONNECT}         
+      - ZBX_TLSACCEPT=${ZBX_TLSACCEPT}         
+      - ZBX_TLSPSKIDENTITY=${ZBX_TLSPSKIDENTITY} 
+      - ZBX_TLSPSKFILE=${ZBX_TLSPSKFILE}  
     volumes:
       - /proc:/proc
       - /sys:/sys:ro
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./psk/zabbix_agentd.psk:/etc/zabbix/zabbix_agentd.psk:ro
